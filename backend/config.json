@@ -1,0 +1,40 @@
+{
+  "listeners": [
+    {
+      "address": "0.0.0.0",
+      "port": 8080,
+      "https": false
+    }
+  ],
+  "db_clients": [
+    {
+      "name": "default",
+      "rdbms": "mysql",
+      "host": "${DB_HOST}",
+      "port": "${DB_PORT}",
+      "dbname": "${DB_NAME}",
+      "user": "${DB_USER}",
+      "passwd": "${DB_PASS}",
+      "connection_number": 10,
+      "auto_batch": false
+    }
+  ],
+  "redis_clients": [
+    {
+      "name": "default",
+      "host": "${REDIS_HOST}",
+      "port": "${REDIS_PORT}",
+      "connection_number": 5
+    }
+  ],
+  "app": {
+    "threads_num": 0,
+    "enable_session": false,
+    "log_path": "./logs",
+    "log_level": "INFO",
+    "upload_path": "/app/storage",
+    "max_connection_num": 100000,
+    "idle_connection_timeout": 60,
+    "keepalive_requests": 0
+  }
+}

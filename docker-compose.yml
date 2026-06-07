@@ -1,0 +1,118 @@
+version: '3.9'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: resume_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MYSQL_DATABASE: resume_optimizer
+      MYSQL_USER: resumeuser
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-resumepass}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: resume_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: resume_chroma
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: resume_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: resume_optimizer
+      DB_USER: resumeuser
+      DB_PASS: ${MYSQL_PASSWORD:-resumepass}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-super-secret}
+      AI_SERVICE_URL: http://ai-service:8001
+      FILE_STORAGE_PATH: /app/storage
+    volumes:
+      - file_storage:/app/storage
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: resume_ai
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: resume_optimizer
+      DB_USER: resumeuser
+      DB_PASS: ${MYSQL_PASSWORD:-resumepass}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8080
+    container_name: resume_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  redis_data:
+  chroma_data:
+  file_storage:
