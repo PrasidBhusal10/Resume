@@ -1,23 +1,13 @@
-"""
-JD Extraction Agent — uses Claude to parse raw job description text
-into structured data, then indexes keywords in ChromaDB for RAG.
-"""
-
 import json
 import logging
 from anthropic import Anthropic
 from prompts.templates import JD_EXTRACTION_SYSTEM, JD_EXTRACTION_USER
-from rag.pipeline import RAGPipeline
 
 logger = logging.getLogger(__name__)
 client = Anthropic()
 
 
 def extract_jd(raw_text: str, company: str = "", job_title: str = "") -> dict:
-    """
-    Extract structured JD data via Claude, then store embeddings in ChromaDB.
-    Returns the extracted dict.
-    """
     prompt = JD_EXTRACTION_USER.format(raw_text=raw_text)
 
     try:
@@ -29,33 +19,12 @@ def extract_jd(raw_text: str, company: str = "", job_title: str = "") -> dict:
         )
 
         raw = response.content[0].text.strip()
-        # Strip accidental markdown fences
         if raw.startswith("```"):
             raw = raw.split("```")[1]
             if raw.startswith("json"):
                 raw = raw[4:]
 
-        extracted: dict = json.loads(raw)
-
-        # ── Store in ChromaDB for future RAG retrieval ────────────────────────
-        try:
-            rag = RAGPipeline()
-            doc_id = f"jd_{hash(raw_text) & 0x7FFFFFFF}"
-            rag.index_job_description(
-                doc_id=doc_id,
-                text=raw_text,
-                metadata={
-                    "company":   company,
-                    "job_title": job_title,
-                    "keywords":  ",".join(extracted.get("keywords", [])),
-                    "seniority": extracted.get("seniority", ""),
-                }
-            )
-        except Exception as rag_err:
-            # RAG indexing is non-critical — log and continue
-            logger.warning(f"ChromaDB indexing failed (non-fatal): {rag_err}")
-
-        return extracted
+        return json.loads(raw)
 
     except json.JSONDecodeError as e:
         logger.error(f"Claude returned invalid JSON: {e}")

@@ -7,7 +7,6 @@ import logging
 import os
 from dotenv import load_dotenv
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"), override=True)
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -20,25 +19,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Warm up sentence-transformer model on startup to avoid cold-start latency
-    logger.info("Warming up sentence-transformer model...")
-    try:
-        from rag.pipeline import _get_model
-        _get_model()
-        logger.info("Model warm-up complete.")
-    except Exception as e:
-        logger.warning(f"Model warm-up failed (non-fatal): {e}")
-    yield
-    logger.info("Shutting down AI service.")
-
-
-app = FastAPI(
-    title="Resume Optimizer AI Service",
-    version="1.0.0",
-    lifespan=lifespan,
-)
+app = FastAPI(title="Resume Optimizer AI Service", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
