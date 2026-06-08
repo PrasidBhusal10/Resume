@@ -14,7 +14,10 @@ const inter = Inter({
 export const metadata: Metadata = {
   title:       "KuikResume — AI-Powered Resume Optimizer",
   description: "Tailor your resume to any job description with AI. Export as PDF, DOCX, or LaTeX.",
-  icons: { icon: "/favicon.ico" },
+  icons: {
+    icon:     [{ url: "/favicon.svg", type: "image/svg+xml" }],
+    shortcut: "/favicon.svg",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

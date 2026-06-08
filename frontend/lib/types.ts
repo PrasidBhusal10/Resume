@@ -90,6 +90,7 @@ export interface ResumeSection {
 // ── Resume ────────────────────────────────────────────────────────────────────
 export interface Resume {
   id:           number;
+  clientId:     string;   // stable UUID used for DB upsert
   title:        string;
   version:      number;
   templateId:   number;

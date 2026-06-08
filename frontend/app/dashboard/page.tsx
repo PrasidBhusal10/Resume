@@ -20,8 +20,8 @@ export default function DashboardPage() {
   const [showAuth, setShowAuth]              = useState(false);
   const [showMenu, setShowMenu]              = useState(false);
 
-  function handleCreate() {
-    const r = addResume("New Resume");
+  async function handleCreate() {
+    const r = await addResume("New Resume");
     router.push(`/editor/${r.id}`);
   }
 
