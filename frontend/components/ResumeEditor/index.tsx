@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight, Eye, EyeOff, Check } from "lucide-react";
 import { useLocalResumeStore } from "@/store/localResumeStore";
-import { useResumeStore } from "@/store/resumeStore";
 import type { Resume, ResumeSection, SectionType } from "@/lib/types";
 import SectionEditor from "./SectionEditor";
 import { TEMPLATES } from "@/lib/templates";
@@ -24,13 +23,11 @@ type Panel = "sections" | "template";
 export default function ResumeEditor({ resume }: { resume: Resume }) {
   const [panel, setPanel]       = useState<Panel>("sections");
   const [expanded, setExpanded] = useState<SectionType | null>("summary");
-  const { setActiveSection }    = useResumeStore();
   const updateSection           = useLocalResumeStore((s) => s.updateSection);
   const updateTemplate          = useLocalResumeStore((s) => s.updateTemplate);
 
   const toggle = (type: SectionType) => {
     setExpanded(expanded === type ? null : type);
-    setActiveSection(type);
   };
 
   const toggleVisibility = (sec: ResumeSection) => {

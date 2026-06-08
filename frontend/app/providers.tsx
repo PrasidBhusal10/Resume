@@ -5,20 +5,26 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SessionProvider, useSession } from "next-auth/react";
 import { useState } from "react";
 import { useAuthStore } from "@/store/authStore";
+import { useLocalResumeStore } from "@/store/localResumeStore";
 
 function SessionSync() {
   const { data: session, status } = useSession();
-  const { user, signIn } = useAuthStore();
+  const signIn                    = useAuthStore((s) => s.signIn);
+  const switchUser                = useLocalResumeStore((s) => s.switchUser);
+
+  // Only react to actual NextAuth session changes — never to Zustand user changes.
+  // If we included `user` in the deps, clearing Zustand on sign-out would
+  // immediately re-trigger this effect and restore the user from the OAuth session.
+  const sessionEmail = session?.user?.email ?? null;
 
   useEffect(() => {
-    if (status === "authenticated" && session?.user) {
-      const name  = session.user.name  ?? session.user.email?.split("@")[0] ?? "User";
-      const email = session.user.email ?? "";
-      if (!user || user.email !== email || user.name !== name) {
-        signIn(name, email);
-      }
+    if (status === "authenticated" && sessionEmail) {
+      const name = session?.user?.name ?? sessionEmail.split("@")[0];
+      signIn(name, sessionEmail);
+      switchUser(sessionEmail);
     }
-  }, [status, session, user, signIn]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, sessionEmail]);
 
   return null;
 }

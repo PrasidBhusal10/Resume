@@ -4,19 +4,23 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, LogOut, ChevronDown } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { useLocalResumeStore } from "@/store/localResumeStore";
+import { signOut as nextAuthSignOut } from "next-auth/react";
 import AuthModal from "@/components/AuthModal";
+import Logo from "@/components/Logo";
 
 export default function LandingPage() {
   const [showAuth,    setShowAuth]    = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, signOut } = useAuthStore();
+  const switchUser = useLocalResumeStore((s) => s.switchUser);
 
   return (
     <div className="min-h-screen bg-mesh flex flex-col">
 
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
       <nav className="flex items-center justify-between px-8 py-7 max-w-7xl mx-auto w-full">
-        <span className="text-xl font-bold tracking-tight text-neutral-900">resumeai</span>
+        <Logo />
 
         <div className="flex items-center gap-3">
           {user ? (
@@ -51,7 +55,7 @@ export default function LandingPage() {
                       Open Dashboard →
                     </Link>
                     <button
-                      onClick={() => { signOut(); setShowUserMenu(false); }}
+                      onClick={() => { signOut(); switchUser(null); nextAuthSignOut({ callbackUrl: "/" }); setShowUserMenu(false); }}
                       className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500
                                  hover:bg-red-50 transition-colors border-t border-surface-border">
                       <LogOut className="w-3.5 h-3.5" />
@@ -156,9 +160,9 @@ export default function LandingPage() {
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="border-t border-surface-border">
         <div className="max-w-7xl mx-auto px-8 py-6 flex items-center justify-between">
-          <span className="text-sm font-medium text-neutral-900/30">resumeai</span>
+          <Logo size="sm" />
           <span className="text-xs text-neutral-900/30">
-            Built with C++ · Python · Claude AI · Next.js
+            &copy; {new Date().getFullYear()} Owned by Prasid Bhusal
           </span>
         </div>
       </footer>

@@ -4,8 +4,6 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Resume, ResumeSection, SectionType, SectionContent } from "@/lib/types";
 
-// ── Default starter resume seeded on first visit ──────────────────────────────
-
 function makeDefaultResume(): Resume {
   const now = new Date().toISOString();
   return {
@@ -58,39 +56,39 @@ function makeDefaultResume(): Resume {
   };
 }
 
-// ── Store interface ───────────────────────────────────────────────────────────
-
 interface LocalResumeStore {
-  resumes:  Resume[];
-  _nextId:  number;
+  resumes:       Resume[];
+  _nextId:       number;
+  _currentUser:  string | null;
 
   addResume:      (title?: string, templateId?: number) => Resume;
   removeResume:   (id: number) => void;
-  updateSection:  (
-    resumeId:    number,
-    sectionType: SectionType,
-    patch:       { content?: SectionContent; isVisible?: boolean },
-  ) => void;
+  updateSection:  (resumeId: number, sectionType: SectionType, patch: { content?: SectionContent; isVisible?: boolean }) => void;
   updateTitle:    (resumeId: number, title: string) => void;
   updateTemplate: (resumeId: number, templateId: number, templateName: string, category: string) => void;
   getResume:      (id: number) => Resume | undefined;
+  switchUser:     (userId: string | null) => void;
 }
-
-// ── Store ─────────────────────────────────────────────────────────────────────
 
 export const useLocalResumeStore = create<LocalResumeStore>()(
   persist(
     (set, get) => ({
-      resumes:  [makeDefaultResume()],
-      _nextId:  2,
+      resumes:      [makeDefaultResume()],
+      _nextId:      2,
+      _currentUser: null,
 
       getResume: (id) => get().resumes.find((r) => r.id === id),
+
+      // Called on every login/logout — resets data if the user changed
+      switchUser: (userId) => {
+        if (get()._currentUser === userId) return;
+        set({ resumes: [makeDefaultResume()], _nextId: 2, _currentUser: userId });
+      },
 
       addResume: (title = "New Resume", templateId = 1) => {
         const id    = get()._nextId;
         const now   = new Date().toISOString();
         const blank = makeDefaultResume();
-        // Apply chosen template metadata
         const { TEMPLATES } = require("@/lib/templates");
         const tpl = TEMPLATES.find((t: { id: number }) => t.id === templateId) ?? TEMPLATES[0];
         const next: Resume = {

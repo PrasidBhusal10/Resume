@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title:       "ResumeAI — AI-Powered Resume Optimizer",
+  title:       "KuikResume — AI-Powered Resume Optimizer",
   description: "Tailor your resume to any job description with AI. Export as PDF, DOCX, or LaTeX.",
   icons: { icon: "/favicon.ico" },
 };

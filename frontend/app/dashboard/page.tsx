@@ -5,16 +5,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { Plus, FileText, Trash2, ArrowRight, Clock, LogOut, User } from "lucide-react";
+import Logo from "@/components/Logo";
 import { useLocalResumeStore } from "@/store/localResumeStore";
 import { useAuthStore } from "@/store/authStore";
+import { signOut as nextAuthSignOut } from "next-auth/react";
 import { formatDate } from "@/lib/utils";
 import type { ResumeListItem } from "@/lib/types";
 import AuthModal from "@/components/AuthModal";
 
 export default function DashboardPage() {
   const router                               = useRouter();
-  const { resumes, addResume, removeResume } = useLocalResumeStore();
-  const { user, signOut }                    = useAuthStore();
+  const { resumes, addResume, removeResume, switchUser } = useLocalResumeStore();
+  const { user, signOut }                                = useAuthStore();
   const [showAuth, setShowAuth]              = useState(false);
   const [showMenu, setShowMenu]              = useState(false);
 
@@ -44,9 +46,7 @@ export default function DashboardPage() {
       {/* ── Nav ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-10 bg-white/70 backdrop-blur-xl border-b border-surface-border">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
-          <Link href="/" className="text-base font-bold tracking-tight text-neutral-900">
-            resumeai
-          </Link>
+          <Logo size="sm" />
 
           <div className="flex items-center gap-2">
             <Link href="/templates" className="btn-ghost text-sm">
@@ -78,7 +78,7 @@ export default function DashboardPage() {
                         <p className="text-xs text-neutral-900/40 truncate">{user.email}</p>
                       </div>
                       <button
-                        onClick={() => { signOut(); setShowMenu(false); }}
+                        onClick={() => { signOut(); switchUser(null); nextAuthSignOut({ callbackUrl: "/" }); setShowMenu(false); }}
                         className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500
                                    hover:bg-red-50 transition-colors">
                         <LogOut className="w-3.5 h-3.5" />

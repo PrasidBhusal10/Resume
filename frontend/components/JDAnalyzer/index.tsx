@@ -3,11 +3,9 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Sparkles, ChevronDown, CheckCircle, XCircle, Loader2, AlertCircle } from "lucide-react";
-import { useResumeStore } from "@/store/resumeStore";
 import { useLocalResumeStore } from "@/store/localResumeStore";
 import { atsScoreColor, atsScoreBg, cn } from "@/lib/utils";
-import type { SectionType, SectionSuggestion } from "@/lib/types";
-import SectionDiff from "@/components/SectionDiff";
+import type { SectionType, SectionSuggestion, SectionContent } from "@/lib/types";
 
 const OPTIMIZABLE_SECTIONS: { type: SectionType; label: string }[] = [
   { type: "summary",    label: "Professional Summary" },
@@ -38,11 +36,10 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
   const [selectedSections, setSelectedSections] = useState<SectionType[]>(["summary", "experience", "skills"]);
   const [loading,          setLoading]          = useState(false);
   const [error,            setError]            = useState<string | null>(null);
+  const [suggestions,      setSuggestions]      = useState<SectionSuggestion[]>([]);
 
-  const { suggestions, setSuggestions, applySuggestion } = useResumeStore();
-  const getResume = useLocalResumeStore((s) => s.getResume);
+  const { getResume, updateSection } = useLocalResumeStore();
 
-  // ── Step 1: Extract JD via AI ─────────────────────────────────────────────
   async function handleAnalyze() {
     if (rawText.length < 50) return;
     setLoading(true);
@@ -59,22 +56,19 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
       setStep("analyzed");
       toast.success("Job description analyzed!");
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(msg);
+      setError(err instanceof Error ? err.message : "Unknown error");
       toast.error("Analysis failed");
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Step 2: Optimize selected sections ───────────────────────────────────
   async function handleOptimize() {
     if (!extracted || selectedSections.length === 0) return;
     setLoading(true);
     setStep("optimizing");
     setError(null);
 
-    // Build current_sections from the local resume store
     const resume = getResume(resumeId);
     const currentSections = (resume?.sections ?? [])
       .filter((s) => selectedSections.includes(s.sectionType))
@@ -97,13 +91,16 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
       setStep("results");
       toast.success(`Done! Overall ATS score: ${data.overall_score}%`);
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(msg);
-      setStep("analyzed"); // go back so user can retry
+      setError(err instanceof Error ? err.message : "Unknown error");
+      setStep("analyzed");
       toast.error("Optimization failed");
     } finally {
       setLoading(false);
     }
+  }
+
+  function applySuggestion(sectionType: SectionType, content: SectionContent) {
+    updateSection(resumeId, sectionType, { content });
   }
 
   const toggleSection = (type: SectionType) =>
@@ -123,8 +120,6 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
 
   return (
     <div className="h-full flex flex-col">
-
-      {/* Header */}
       <div className="p-4 border-b border-surface-border flex-shrink-0">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="w-4 h-4 text-brand-600" />
@@ -135,7 +130,6 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
-        {/* Error banner */}
         {error && (
           <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700">
             <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -146,7 +140,6 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
           </div>
         )}
 
-        {/* ── Step: Input ─────────────────────────────────────────────────── */}
         {step === "input" && (
           <>
             <div className="grid grid-cols-2 gap-2">
@@ -185,7 +178,6 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
           </>
         )}
 
-        {/* ── Step: Analyzed — pick sections ──────────────────────────────── */}
         {(step === "analyzed" || step === "optimizing") && extracted && (
           <>
             <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
@@ -237,7 +229,6 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
           </>
         )}
 
-        {/* ── Step: Results ────────────────────────────────────────────────── */}
         {step === "results" && suggestions.length > 0 && (
           <>
             <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 text-center">
@@ -269,7 +260,6 @@ export default function JDAnalyzer({ resumeId }: { resumeId: number }) {
   );
 }
 
-// ── Suggestion card ───────────────────────────────────────────────────────────
 function SuggestionCard({
   suggestion, onAccept, onReject,
 }: {
@@ -313,8 +303,19 @@ function SuggestionCard({
       </div>
 
       {open && (
-        <div className="border-t border-surface-border">
-          <SectionDiff original={suggestion.original} suggested={suggestion.suggested} />
+        <div className="border-t border-surface-border p-3 grid grid-cols-2 gap-2">
+          <div>
+            <p className="text-xs font-medium text-neutral-900/40 mb-1">Before</p>
+            <pre className="text-xs text-neutral-900/60 whitespace-pre-wrap bg-neutral-50 rounded-lg p-2 max-h-40 overflow-y-auto">
+              {suggestion.original}
+            </pre>
+          </div>
+          <div>
+            <p className="text-xs font-medium text-emerald-600 mb-1">After</p>
+            <pre className="text-xs text-neutral-900/80 whitespace-pre-wrap bg-emerald-50 rounded-lg p-2 max-h-40 overflow-y-auto">
+              {suggestion.suggested}
+            </pre>
+          </div>
         </div>
       )}
 
